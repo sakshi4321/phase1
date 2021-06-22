@@ -1,9 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<style>
+.button0 {
+  background-color: #4CAF50; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 12px;
+  display: inline-block;
+  font-size: 24px;
+  margin: 4px 2px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+
+.button2 {background-color: #008CBA;} /* Blue */
+.button3 {background-color: #f44336;} /* Red */ 
+.button4 {background-color: #e7e7e7; color: black;} /* Gray */ 
+.button5 {background-color: #555555;} /* Black */
+</style>
+
+
+
+
 <!-- index.html -->
 <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-  </head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
   <body>
-    <button id='myButton' type="button">Start</button>
+ 
+    
+
+    <button id='myButton' type="button" class="button0">Start</button>
+    
     <script>
       $('#myButton').click(function() {
           $.ajax({
@@ -17,7 +50,8 @@
         });
       });
     </script>
-    <button id='endButton' name="button_a" value="button_a" type="button">End</button>
+    
+    <button id='endButton' name="button_a" value="button_a" type="button" class="button0 button3" >End</button>
     
     <script>
     $('#endButton').click(function() {
@@ -32,10 +66,14 @@
         });
       });
     </script>
+
   
    
-  <a href=highway ><button class=grey style="height:75px;width:150px">Return to index page</button></a>
+<a href=highway ><button  class="button0 button2">Return to index page</button></a> 
   
   
   </body>
-  
+ 
+
+</html> 
+

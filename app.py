@@ -5,15 +5,22 @@ import csv
 import openpyxl
 from openpyxl.reader.excel import load_workbook
 from flask import Flask, render_template, request, \
-    Response, send_file, redirect, url_for,flash
+    Response, send_file, redirect, url_for,flash, make_response 
 from camera import Camera
 from flask import send_file, send_from_directory, safe_join, abort,session
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+import sqlalchemy as db
+import pandas as pd
+#from datetime import datetime
+from sqlalchemy import Column, Integer, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+
+
 import pickle
 import cv2
 import random
 import datetime
+from datetime import datetime, date
 import xlwt
 import xlrd
 from facenet_pytorch import MTCNN
@@ -29,6 +36,7 @@ from sklearn.preprocessing import Normalizer
 from scipy.spatial.distance import cosine
 import os
 from xlutils.copy import copy
+from sqlalchemy import and_, or_, not_
 # results=db.session.query(Students,Course,Classes).\
 # ... select_from(Students).join(Course).join(Classes).all()
 
@@ -124,6 +132,13 @@ class Attendance_sys(db.Model):
     lecture_id=db.Column(db.Integer,db.ForeignKey('lectures.lecture_id'))
     class_id=db.Column(db.Integer,db.ForeignKey('classes.class_id'))
     present_absent=db.Column(db.Boolean, default=False, nullable=False)
+####my
+class Attendance(db.Model):
+    course_id=db.Column(db.Integer,primary_key=True)
+    roll_no=db.Column(db.Integer,nullable=False)
+    lecture_id=db.Column(db.Integer,nullable=False)
+    class_id=db.Column(db.Integer,nullable=False)
+    present_absent=db.Column(db.Boolean, default=False, nullable=False)
 
 
     # def __init__(self,attendance_id,lecture_id,class_id,present_absent):
@@ -132,8 +147,44 @@ class Attendance_sys(db.Model):
     #     self.lecture_id=lecture_id
     #     self.class_id=class_id
     #     self.present_absent=present_absent
+"""engine = db.create_engine('sqlite:///test.sqlite') #Create test.sqlite automatically
+connection = engine.connect()
+metadata = db.MetaData()"""
+#course='ic'
+class arecord(db.Model):
+    id_a=db.Column(db.String(225))
+    primkey=db.Column(db.DateTime, nullable=False, default=datetime.now(),primary_key=True)
+    name_a=db.Column(db.String(255), nullable=False)
+    date=db.Column(db.Date, nullable=False, default=date.today())
+    lecture_no=db.Column(db.Integer(), nullable=False)         
+              
+    attend=db.Column(db.Boolean(), default=False)
+    """two=db.Column(db.Boolean(), default=False)
+    three=db.Column(db.Boolean(), default=False)
+    four=db.Column(db.Boolean(), default=False)
+    five=db.Column(db.Boolean(), default=False)
+    six=db.Column(db.Boolean(), default=False)
+    seven=db.Column(db.Boolean(), default=False)
+    eight=db.Column(db.Boolean(), default=False)"""
+db.create_all()
 
-
+"""def __init__(self,id_a,name_a,attend):
+        self.id_a=id_a
+        self.name_a=name_a
+        #self.date=date
+        self.attend=attend"""
+    #     self.present_absent=present_absent
+    
+"""              
+emp = db.Table(course, 
+              db.Column('Id', db.Integer(),primary_key=True),
+              db.Column('name', db.String(255), nullable=False),
+              db.Column('date', db.DateTime),
+              
+              
+              db.Column('attendance', db.Boolean(), default=True)
+              )"""
+#metadata.create_all(engine) #Creates the table
 ########################################################################################################
 ###### Convert string to an Object
 def str_to_class(str):
@@ -210,7 +261,10 @@ def class_reg():
 ########## Attendance Page
 @app.route('/attendance', methods=['POST', 'GET'])
 def attendance_records():
-    return render_template('attendance.html')
+    attendance = arecord.query.all()
+    attendance2 = arecord.query.with_entities(arecord.name_a).distinct()
+    attendance1 = arecord.query.with_entities(arecord.lecture_no).distinct()
+    return render_template('attend_page.html',record=attendance,nRecord=attendance2,nRecord1=attendance1)
 
 
 ######## Insert Student in the database
@@ -334,6 +388,18 @@ def update():
         db.session.commit()
         flash("Student updated Sucessfully!!")
         return redirect(url_for('index'))
+
+
+@app.route('/update_attendance',methods=["GET","POST"])
+def update_attendance():
+    if request.method=="POST":
+        update_query_course=arecord.query.get(request.form.get('value_attend'))
+        #update_query_course.course_name=request.form["course"]
+        db.session.commit()
+        flash("Attendace updated Sucessfully!!!")
+        return redirect(url_for('attendance_records'))
+
+
 
 # @app.route('/update_lecture',methods=["GET","POST"])
 # def update_lec():
@@ -540,7 +606,11 @@ def show_capture(timestamp):
     course=session.get("course")
     return render_template('capture.html', path=path,roll_no=roll_no,rank=rank,first_name=first_name,last_name=last_name,phone=phone,course=course)
 
-
+#######################get query and access attendance
+"""def send_attendance():
+    for i in os.listdir('/static/attendance'):
+        if i.endswith(".xls"):"""
+       
 
 
 """
@@ -575,21 +645,26 @@ def test():
 def foo():
     flag=False
     global video
-    f = datetime.datetime.now()
+    f = datetime.now()
+    global course_current
     #dont delete, parses through all the ips of camera
-    
+    course_name=[]
+    class_index=[]
     if Classes.query.order_by(Classes.camera_name).all() is not None:
     
         for class_ip in Classes.query.order_by(Classes.camera_name).all():
             print(class_ip.camera_name)
+            class_index.append(class_ip.camera_name)
             video=cv2.VideoCapture(int(class_ip.camera_name))
-            program(flag)
-            if int(f.minute)==15:
-                ######add the rstp's string and append class_ip to it
-                print(class_ip)
-                #video=cv2.VideoCapture(class_ip.camera_name)
-                #program(flag,class_ip)
-           
+            course_current=Course.query.filter(Course.course_id==class_ip.course_sel)
+            #print(class_ip.course_sel)
+            for p in course_current:
+            
+                s=p.course_name
+                course_name.append(s)
+                print(course_name)
+            program(flag,s)
+            
         
     
     #video =cv2.VideoCapture(0)
@@ -597,13 +672,13 @@ def foo():
     # grab reddit data and write to csv
     #program(flag,class_ip)
     
-    return jsonify({"message": "You have turned off the attendace system"})
+    return jsonify({"message": "You have turned off the attendance system"})
 
 @app.route('/new', methods=['POST'])
 def new():
     flag=True
     # grab reddit data and write to csv
-    program(flag)
+    program(flag,course_current)
     
     return redirect(url_for('test'))
 @app.route('/highway', methods=['POST','GET'])
@@ -612,8 +687,53 @@ def highway():
 
 ###################program to check if the guy was there for atleast 5 lecture
 #def check_unknown_id():
-    
+def to_dict(row):
+    if row is None:
+        return None
 
+    rtn_dict = dict()
+    keys = row.__table__.columns.keys()
+    for key in keys:
+        #print(key)
+        rtn_dict[key] = getattr(row, key)
+        #print(rtn_dict)
+    return rtn_dict
+##################program to get date input from user 
+@app.route('/excel', methods =["GET", "POST"])
+def excel():
+    
+    if request.method == "POST":
+       # getting input with name = fname in HTML form
+       start = request.form.get("start")
+       # getting input with name = lname in HTML form 
+       end = request.form.get("end") 
+       select = request.form.get('course')
+       number = request.form.get('lec_no')
+       qry = arecord.query.filter(and_(arecord.date.between(start, end),arecord.name_a.like(select),arecord.lecture_no.like(number))).all()
+       data_list = [to_dict(item) for item in qry]
+       df = pd.DataFrame(data_list)
+       #print(df)
+       #a=df.columns
+       df.drop('name_a',inplace=True,axis=1)
+       df.drop('primkey',inplace=True,axis=1)
+       df.drop('lecture_no',inplace=True,axis=1)
+       s = df.groupby(['id_a']).cumcount()
+
+       df1 = df.set_index(['id_a', s]).unstack().sort_index(level=1, axis=1)
+       df1.columns = [f'{x}{y}' for x, y in df1.columns]
+       df1 = df1.reset_index()
+       print (df1)
+       #print(df.date.unique())
+       #print(df)
+       resp = make_response(df1.to_csv())
+       resp.headers["Content-Disposition"] = "attachment; filename=export.csv"
+       resp.headers["Content-Type"] = "text/csv"
+       return resp
+       
+       #for i in qry:
+       #print(i.date)
+    return redirect(url_for("attendance_records"))  
+#return render_template("attend_page.html")
 recognition_t=0.6
 confidence_t=0.99
 
@@ -625,13 +745,15 @@ detector=MTCNN()
 face_encoder = load_model(encoder_model)
 directory='static/embeddings'
 encoded={}
-for filename in os.listdir(directory):
-    if filename.endswith(".dat"):
-        if os.path.isfile('static/embeddings/'+str(filename)):
-            with open('static/embeddings/'+str(filename),"rb") as f:
-                e= pickle.load(f)
-                encoded.update(e)
-
+def send_encodings(directory):
+    encoded={}
+    for filename in os.listdir(directory):
+        if filename.endswith(".dat"):
+            if os.path.isfile('static/embeddings/'+str(filename)):
+                with open('static/embeddings/'+str(filename),"rb") as f:
+                    e= pickle.load(f)
+                    encoded.update(e)
+    return encoded
 def get_encode(face_encoder, face, size):
     face = normalize(face)
     face = cv2.resize(face, size)
@@ -650,15 +772,72 @@ def normalize(img):
     return (img - mean) / std
 
 l2_normalizer = Normalizer('l2')
+
+
+
 ### collect daywise attendance by checking through a list of ppl
 
-def mark_attendance_of_a_lec(a,t):
+def attendance_in_db(a,t,lec_no,course_current):
+    encoded=send_encodings(directory)
+    print(a)
+    #date_p=datetime.datetime.now()
+    flag_a=1
+    print(course_current)
+
+   
+
+        
+    if len(a)>0:
+        print("test")
+        for person_name in encoded:
+            #print(person_name)
+            #print(a)
+
+            for x in range(0,len(a)):
+                #spl=str(a[x]).split('_')
+                #cou=spl[0]
+                #print(spl[0])
+                f=str(person_name).split('_')
+                if str(person_name) in a and f[0]==str(course_current):
+                    flag_a=0
+                    
+                
+                    l=str(a[x]).split('_')
+                    print(l)
+                    marked =arecord(id_a=l[1],primkey=datetime.now(), name_a=l[0],lecture_no=3,attend=True) 
+                    #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name)
+                    db.session.add(marked)
+                    db.session.commit()
+                    print("done!")
+                    #ResultProxy = db.session.execute(query)
+                    #query = db.insert(emp) 
+                if str(person_name) not in a and f[0]==str(course_current):
+                    print("else vala test")
+                    l=str(person_name).split('_')
+                    print(l)
+                    flag_a=0
+                    marked =arecord(id_a=l[1], primkey=datetime.now(),name_a=l[0],lecture_no=3,attend=False) 
+                    db.session.add(marked)
+                    #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
+                    db.session.commit()
+                    #print(l)
+                    #query = db.insert(emp).values(Id=l[1], name=l[0], date=datetime(2015, 6, 5, 8, 10, 10, 10), attendance=False) 
+                    #ResultProxy = db.session.execute(query)
+    return flag_a                
+    #results = db.session.execute(db.select([emp])).fetchall()
+    #df = pd.DataFrame(results)
+    #df.columns = results[0].keys()
+    #print(df.head(2))
+
+    
+def mark_attendance_of_a_lec(a,t,lec_no):
     #workbook = xlwt.Workbook() 
     course=check_which_course(a)
     
     #change this in pandas df to open and edit excel sheet 
     
-     
+    encoded=send_encodings(directory)
+
     workbook = xlwt.Workbook()  	 
     sheet = workbook.add_sheet(str(t.year)+"_"+str(t.month)+"_"+str(t.day)) 
     sheet.write(0,0,"Name")
@@ -673,7 +852,9 @@ def mark_attendance_of_a_lec(a,t):
                 spl=str(a[x]).split('_')
                 cou=spl[0]
                 if person_name in a:
+                
                     l=str(a[x]).split('_')
+                    print(l)
                     sheet.write(row, col,     str(l[0]))
     
                     sheet.write(row, col+1,     str(l[1]))
@@ -781,6 +962,7 @@ def mark_attendance_of_a_lec(a,t):
                             if course==cou:
                                 sheet.write(row, col,     str(l[0]))
     
+
                                 sheet.write(row, col+1,     str(l[1]))
                                 sheet.write(row,col+2,"A")
                         
@@ -809,7 +991,6 @@ def check_which_course(a):
 
 
 
-fps_start_time = datetime.datetime.now()
 classNames = []
 with open('coco.names','r') as f:
     classNames = f.read().splitlines()
@@ -827,12 +1008,14 @@ net.setInputSwapRB(True)
     
 
             
-def program(flag):
+def program(flag,course_current):
+    encoded=send_encodings(directory)
     present_candidates=[]
+    flag_a=0
     while True:
         check,frame=video.read()
         total_people=0
-        t=datetime.datetime.now()
+        t=datetime.now()
         #frame=sr.upsample(frame)
         #total_frames = total_frames + 1
         print(t.second)
@@ -869,10 +1052,11 @@ def program(flag):
                         distance = dist
                         if name not in present_candidates:
                             present_candidates.append(name)
-                """course="temp"
+                course="temp"
                 if len(present_candidates)!=0:
                     course=check_which_course(present_candidates)
-                if name=='unknown':
+                    #print(course)
+                """if name=='unknown' and t.second==24:
                     name_l=random.random()
                     present_candidates.append(name_l)
                     #classdetails=Classes.query.filter_by(camera_name=str(classroom_ip)).first()
@@ -900,30 +1084,88 @@ def program(flag):
                     if not os.path.exists('static/photo/temp'):
                         os.makedirs('static/photo/temp')
                     filename ='static/photo/temp'+'/'+ str(name_l)+".jpg"
+                    encoded=send_encodings(directory)
 
         
                     if not cv2.imwrite(filename, frame):
                         raise RuntimeError("Unable to capture image "+timestamp)
-                    #save embeddings with randoom id
-                    #send attendace to class with random id
-                    #check from a program 7 attendaces lagle ka
-                    #mag lagle tar takun de
-                    """
-        if t.second==25: 
-            #clear present candidates before attendance
-            present_candidates=[]            
-        #print(present_candidates)
-        #mark_attendance_of_a_lec(present_candidates,t) 
-        if t.second==59:
+                  """
+        #############8:15-9 am 
+        if t.hour==8 and t.minute==20 and t.second==22:
+            flag_a=1           
+        if t.hour==8 and t.minute==20 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        #############9 - 9:45 am
+        if t.hour==9 and t.minute==5 and t.second==22:
+            flag_a=1           
+        if t.hour==9 and t.minute==5 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        ############# 9:50-10:30
+        if t.hour==9 and t.minute==55 and t.second==22:
+            flag_a=1           
+        if t.hour==9 and t.minute==55 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        #################10:30-11:30
+        if t.hour==10 and t.minute==35 and t.second==22:
+            flag_a=1           
+        if t.hour==10 and t.minute==35 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        ############11:40-12:25
+        if t.hour==11 and t.minute==45 and t.second==22:
+            flag_a=1           
+        if t.hour==11 and t.minute==45 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        #################12:30-1:10
+        if t.hour==12 and t.minute==35 and t.second==22:
+            flag_a=1           
+        if t.hour==12 and t.minute==35 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        ##########1:15-2
+        if t.hour==13 and t.minute==20 and t.second==22:
+            flag_a=1           
+        if t.hour==13 and t.minute==20 and t.second==25 and flag_a==1 : 
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return
+        """if t.second==59:
             mark_attendance_of_a_lec(present_candidates,t) 
             course=check_which_course(present_candidates)
+            
             if not os.path.exists('static/proof/'+str(course)):
+                
                 os.makedirs('static/proof/'+str(course))
             filename ='static/proof/'+str(course)+'/'+ str(t.day)+"_"+str(t.month)+"_"+str(t.year)+"_"+str(t.hour)+":"+str(t.minute)+".jpg"
+            query
 
         
             if not cv2.imwrite(filename, frame):
-                raise RuntimeError("Unable to capture image "+timestamp)    
+                raise RuntimeError("Unable to capture image "+timestamp)   """ 
         if flag:
            break  
      

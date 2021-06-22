@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" >
+<form action="{{ url_for("excel")}}" method="post">
+<label for="start">Start date:</label>
+
+<input type="date" id="start" name="start"
+       
+       min="2018-01-01" max="2050-12-31">
+       
+<label for="start">End date:</label>
+
+<input type="date" id="end" name="end"
+       
+       min="2018-01-01" max="2050-12-31">
+<label for="course">Choose course:</label>
+  <select id="course" name="course">
+    {% for o in nRecord %}
+              <option value="{{ o.name_a }}">{{ o.name_a }}</option>
+              {% endfor %}  
+  </select>    
+  
+<label for="lec_no">Choose lecture number:</label>
+  <select id="lec_no" name="lec_no">
+    {% for o1 in nRecord1 %}
+              <option value="{{ o1.lecture_no }}">{{ o1.lecture_no }}</option>
+              {% endfor %}  
+  </select>     
+<button type="submit">Submit</button>       
+</html>
+
