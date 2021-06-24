@@ -68,7 +68,7 @@ $inputs.on('input', function() {
   <div class="row mt-4">
    <!--<div class="panel panel-primary filterable">-->
    
-       <table class="table table-hover center" style="border-collapse: collapse;" id="table">
+       <table class="table table-hover justify-content-center" style="border-collapse: collapse;" id="table">
       <thead>
             <tr>
 
@@ -80,6 +80,8 @@ $inputs.on('input', function() {
                 <!-- <th style="position: sticky;top: 0;">Stream</th> -->
               
                 <th class="text-center" style="position: sticky;top: 0;">Attendance</th>
+                <th class="text-center" style="position: sticky;top: 0;">Edit</th>
+
 
             </tr>
             </thead>
@@ -87,11 +89,11 @@ $inputs.on('input', function() {
         <tbody>
         <tr>
            
-               <td>{{ row.id_a }}</a></td>
+               <td class="text-center">{{ row.id_a }}</a></td>
 		<td >{{ row.name_a }}</td>
 		<td>{{ row.date }}</td>
-		<td>{{ row.lecture_no }}</td>
-		<td>{{ row.attend }}</td>
+		<td class="text-center">{{ row.lecture_no }}</td>
+		<td class="text-center">{{ row.attend }}</td>
 		 <td class="text-center">
 		<a href="/update_attendance/{{row.primkey}}" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#modaledit{{row.primkey}}">Edit</a>
 		
@@ -116,7 +118,16 @@ $inputs.on('input', function() {
                           
                         <div class="form-group">
                           <label>Attendance</label>
-                          <input type="text" class="form-control" name="value_attend" value="{{row.attend}}">
+                          <input type="hidden"  name="id" value="{{row.primkey}}">
+                          
+                          <label for="sel_course">Attendance:</label>
+                          <select class="form-control" name="value_attend" value="{{row.attend}}">
+                            <option type="text">True</option>
+                            
+                            <option type="text">False</option>
+                            
+                      
+                         </select>
                         </div>
                             
 
@@ -175,14 +186,15 @@ var filtersConfig = {
   
   col_3: 'select',
   col_4:  'select',
-  
+  col_5: 'select',
   alternate_rows: true,
   rows_counter: false,
-  btn_reset: true,
+  btn_reset: false,
   loader: true,
   mark_active_columns: true,
   highlight_keywords: true,
   no_results_message: true,
+  
   col_types: [
     'string', 'string', { type: 'date', locale: 'en-GB', format: ['{yyyy|yy}-{MM}-{dd}'] },
     'string', 'number'
