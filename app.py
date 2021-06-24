@@ -153,7 +153,7 @@ metadata = db.MetaData()"""
 #course='ic'
 class arecord(db.Model):
     id_a=db.Column(db.String(225))
-    primkey=db.Column(db.DateTime, nullable=False, default=datetime.now(),primary_key=True)
+    primkey=db.Column(db.Integer, autoincrement=True,primary_key=True)
     name_a=db.Column(db.String(255), nullable=False)
     date=db.Column(db.Date, nullable=False, default=date.today())
     lecture_no=db.Column(db.Integer(), nullable=False)         
@@ -393,7 +393,16 @@ def update():
 @app.route('/update_attendance',methods=["GET","POST"])
 def update_attendance():
     if request.method=="POST":
-        update_query_course=arecord.query.get(request.form.get('value_attend'))
+        update_query=arecord.query.get(request.form.get('id'))
+        print(update_query)
+        #update_query.attend=request.form['value_attend']
+        temp=request.form['value_attend']
+        if temp=="True":
+            update_query.attend=True
+            print("0")
+        else:
+            update_query.attend=False
+        #print(bool(request.form['value_attend']))
         #update_query_course.course_name=request.form["course"]
         db.session.commit()
         flash("Attendace updated Sucessfully!!!")
@@ -1176,4 +1185,4 @@ def program(flag,course_current):
 if __name__ == '__main__':
     
 
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5010, debug=True)
