@@ -3,6 +3,7 @@ import os
 import shutil
 import csv
 import openpyxl
+import threading
 from openpyxl.reader.excel import load_workbook
 from flask import Flask, render_template, request, \
     Response, send_file, redirect, url_for,flash, make_response 
@@ -47,6 +48,7 @@ app.config["SECRET_KEY"]="abc"
 app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///attendance.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 camera = None
+marked_courses=[]
 db=SQLAlchemy(app)
 # app.secret_key = "abc"
 
@@ -153,7 +155,7 @@ metadata = db.MetaData()"""
 #course='ic'
 class arecord(db.Model):
     id_a=db.Column(db.String(225))
-    primkey=db.Column(db.Integer, autoincrement=True,primary_key=True)
+    primkey=db.Column(db.Integer(),autoincrement=True, primary_key=True)
     name_a=db.Column(db.String(255), nullable=False)
     date=db.Column(db.Date, nullable=False, default=date.today())
     lecture_no=db.Column(db.Integer(), nullable=False)         
@@ -654,39 +656,56 @@ def test():
 def foo():
     flag=False
     global video
+    global marked_courses
+    
     f = datetime.now()
     global course_current
     #dont delete, parses through all the ips of camera
     course_name=[]
     class_index=[]
     if Classes.query.order_by(Classes.camera_name).all() is not None:
+        if len(marked_courses)==len(Classes.query.order_by(Classes.camera_name).all()):
+            marked_courses=[]
     
         for class_ip in Classes.query.order_by(Classes.camera_name).all():
-            print(class_ip.camera_name)
-            class_index.append(class_ip.camera_name)
-            video=cv2.VideoCapture(int(class_ip.camera_name))
-            course_current=Course.query.filter(Course.course_id==class_ip.course_sel)
-            #print(class_ip.course_sel)
-            for p in course_current:
             
-                s=p.course_name
-                course_name.append(s)
-                print(course_name)
-            program(flag,s)
+            if class_ip.camera_name not in marked_courses:
+               
+                marked_courses.append(class_ip.camera_name)
+                print(marked_courses)
+
+                class_index.append(class_ip.camera_name)
+                if class_ip.camera_name=='0':
+                    video=cv2.VideoCapture(int(class_ip.camera_name))
+                else:
+
+                    video=cv2.VideoCapture(class_ip.camera_name)
+                course_current=Course.query.filter(Course.course_id==class_ip.course_sel)
+                #print(class_ip.course_sel)
+                for p in course_current:
+                
+                    s=p.course_name
+                    course_name.append(s)
+                    print(course_name)
+                #t1 = threading.Thread(target=program, args=(flag,s))
+                #t1.start()
+                
+                program(flag,s)
+            
             
         
     
     #video =cv2.VideoCapture(0)
     
-    # grab reddit data and write to csv
+    
     #program(flag,class_ip)
     
-    return jsonify({"message": "You have turned off the attendance system"})
+    return foo() 
 
 @app.route('/new', methods=['POST'])
 def new():
     flag=True
-    # grab reddit data and write to csv
+    
     program(flag,course_current)
     
     return redirect(url_for('test'))
@@ -788,10 +807,24 @@ l2_normalizer = Normalizer('l2')
 
 def attendance_in_db(a,t,lec_no,course_current):
     encoded=send_encodings(directory)
+    print("marking attendance")
     print(a)
     #date_p=datetime.datetime.now()
     flag_a=1
     print(course_current)
+    if len(a)==0:
+        for person_name in encoded:
+            f=str(person_name).split('_')
+            if str(person_name) not in a and f[0]==str(course_current):
+                print("no one is there")
+                l=str(person_name).split('_')
+                print(l)
+                flag_a=0
+                marked =arecord(id_a=l[1],primkey=None,name_a=l[0],lecture_no=5,attend=False) 
+                db.session.add(marked)
+                #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
+                db.session.commit()
+
 
    
 
@@ -802,36 +835,36 @@ def attendance_in_db(a,t,lec_no,course_current):
             #print(person_name)
             #print(a)
 
-            for x in range(0,len(a)):
+            #for x in range(0,len(a)):
                 #spl=str(a[x]).split('_')
                 #cou=spl[0]
                 #print(spl[0])
-                f=str(person_name).split('_')
-                if str(person_name) in a and f[0]==str(course_current):
-                    flag_a=0
-                    
+            f=str(person_name).split('_')
+            print("course going on is "+ course_current)
+            if str(person_name) in a and f[0]==str(course_current):
+                flag_a=0
                 
-                    l=str(a[x]).split('_')
-                    print(l)
-                    marked =arecord(id_a=l[1],primkey=datetime.now(), name_a=l[0],lecture_no=3,attend=True) 
-                    #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name)
-                    db.session.add(marked)
-                    db.session.commit()
-                    print("done!")
-                    #ResultProxy = db.session.execute(query)
-                    #query = db.insert(emp) 
-                if str(person_name) not in a and f[0]==str(course_current):
-                    print("else vala test")
-                    l=str(person_name).split('_')
-                    print(l)
-                    flag_a=0
-                    marked =arecord(id_a=l[1], primkey=datetime.now(),name_a=l[0],lecture_no=3,attend=False) 
-                    db.session.add(marked)
-                    #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
-                    db.session.commit()
-                    #print(l)
-                    #query = db.insert(emp).values(Id=l[1], name=l[0], date=datetime(2015, 6, 5, 8, 10, 10, 10), attendance=False) 
-                    #ResultProxy = db.session.execute(query)
+            
+                
+                marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=7,attend=True) 
+                #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name)
+                db.session.add(marked)
+                db.session.commit()
+                print("attendance marked true!")
+                #ResultProxy = db.session.execute(query)
+                #query = db.insert(emp) 
+            if str(person_name) not in a and f[0]==str(course_current):
+                print("else vala test")
+                l=str(person_name).split('_')
+                print(l)
+                flag_a=0
+                marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=7,attend=False) 
+                db.session.add(marked)
+                #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
+                db.session.commit()
+                #print(l)
+                #query = db.insert(emp).values(Id=l[1], name=l[0], date=datetime(2015, 6, 5, 8, 10, 10, 10), attendance=False) 
+                #ResultProxy = db.session.execute(query)
     return flag_a                
     #results = db.session.execute(db.select([emp])).fetchall()
     #df = pd.DataFrame(results)
@@ -884,106 +917,7 @@ def mark_attendance_of_a_lec(a,t,lec_no):
         
        
         
-        """
-        #workbook = xlwt.Workbook() 
-    course=check_which_course(a)
-    
-    #change this in pandas df to open and edit excel sheet 
-    if os.path.isfile("static/attendance/"+str(course)+".xls"):
-        wb = xlrd.open_workbook("static/attendance/"+str(course)+".xls")
-        workbook = copy(wb)
-   
-        
-    names=[]
-    numberOfSheets=wb.nsheets
-    for each in range(0,numberOfSheets):
-        sheet=wb.sheet_by_index(each)
-        ws = workbook.get_sheet(each)
-        s=str(ws.name)
-        names.append(s)
-            
-            
-      
-    
-        
-        
-    #sheet = wb.sheet_by_index(0)
-    #rb = open_workbook("names.xls")
-    #to check for existance of sheets
-        if str(t.year)+"_"+str(t.month)+"_"+str(t.day) in names:
-
-            sheet = workbook.get_sheet(str(t.year)+"_"+str(t.month)+"_"+str(t.day))
-            row_s=sheet.nrows
-            col_s=sheet.ncols
-            for i in range(1,row_s):
-            
-            
-        
-                if str(sheet.cell_value(i,1))+"_"+str(sheet.cell_value(i,1)) in a:
-                    names_sheet.write(i, col_s,"P")
-        
-                
-                else:
-                
-                    names_sheet.write(i, col_s,"A")
-        
-    #1st if ka else
-    else:  
-        workbook = xlwt.Workbook() 
-        sheet = workbook.add_sheet(str(t.year)+"_"+str(t.month)+"_"+str(t.day)) 
-        sheet.write(0,0,"Course")
-        sheet.write(0,1,"Name")
-        sheet.write(0,2,str(t.hour)+":"+str(t.minute))
-        row = 1
-        col = 0
-        
-    
-        if len(a)>0:
-            course=check_which_course(a)
-            for person_name in encoded:
-            
-
-                for x in range(0,len(a)):
-                    spl=str(a[x]).split('_')
-                    cou=spl[0]
-                    if person_name in a:
-                        l=str(a[x]).split('_')
-                        if len(l)<2:
-                            sheet.write(row, col,     str(course))
-    
-                            sheet.write(row, col+1,     str(l[0]))
-                            sheet.write(row,col+2,"A")
-                        else:
-                            if str(l[0])==str(course):
-                                sheet.write(row, col,     str(l[0]))
-    
-                                sheet.write(row, col+1,     str(l[1]))
-                                sheet.write(row,col+2,"P")
-                    if person_name not in a: 
-                        l=str(person_name).split('_')
-                        if len(l)<2:
-                            sheet.write(row, col,     str(course))
-    
-                            sheet.write(row, col+1,     str(l[0]))
-                            sheet.write(row,col+2,"A")
-                        else:
-                            
-                            if course==cou:
-                                sheet.write(row, col,     str(l[0]))
-    
-
-                                sheet.write(row, col+1,     str(l[1]))
-                                sheet.write(row,col+2,"A")
-                        
-                
-                    row+=1
        
-        workbook.save("static/attendance/"+str(course)+".xls")
-        """
-        #print("Marked attendance")
-        """else:
-            sheet.write(1,0,"No one is present")
-            workbook.save("sample_class_1.xls") """
   
 def check_which_course(a):
     number_of_s={}
@@ -1097,8 +1031,22 @@ def program(flag,course_current):
 
         
                     if not cv2.imwrite(filename, frame):
-                        raise RuntimeError("Unable to capture image "+timestamp)
-                  """
+                        raise RuntimeError("Unable to capture image "+timestamp)"""
+        #total_cam=len(Classes.query.order_by(Classes.camera_name).all())
+        #i+=1
+        if t.minute==30:
+            marked_courses=[]
+            #i=0
+        if  t.second==2 or t.second==18:
+            flag_a=1           
+        if  t.second==4 or t.second==20 and flag_a==1 : 
+            
+
+           
+            lec_no=[True,0,0,0,0,0,0,0]
+            
+            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+            return foo()         
         #############8:15-9 am 
         if t.hour==8 and t.minute==20 and t.second==22:
             flag_a=1           
