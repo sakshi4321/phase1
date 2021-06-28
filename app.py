@@ -820,7 +820,7 @@ def attendance_in_db(a,t,lec_no,course_current):
                 l=str(person_name).split('_')
                 print(l)
                 flag_a=0
-                marked =arecord(id_a=l[1],primkey=None,name_a=l[0],lecture_no=5,attend=False) 
+                marked =arecord(id_a=l[1],primkey=None,name_a=l[0],lecture_no=int(t.minute),attend=False) 
                 db.session.add(marked)
                 #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
                 db.session.commit()
@@ -846,7 +846,7 @@ def attendance_in_db(a,t,lec_no,course_current):
                 
             
                 
-                marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=7,attend=True) 
+                marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=lec_no,attend=True) 
                 #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name)
                 db.session.add(marked)
                 db.session.commit()
@@ -858,7 +858,7 @@ def attendance_in_db(a,t,lec_no,course_current):
                 l=str(person_name).split('_')
                 print(l)
                 flag_a=0
-                marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=7,attend=False) 
+                marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=lec_no,attend=False) 
                 db.session.add(marked)
                 #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
                 db.session.commit()
@@ -1039,11 +1039,11 @@ def program(flag,course_current):
             #i=0
         if  t.second==2 or t.second==18:
             flag_a=1           
-        if  t.second==4 or t.second==20 and flag_a==1 : 
+        if  4<t.second<20 and flag_a==1 : 
             
 
            
-            lec_no=[True,0,0,0,0,0,0,0]
+            lec_no=38
             
             flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
             return foo()         
