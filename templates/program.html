@@ -10,13 +10,18 @@
   text-align: center;
   text-decoration: none;
   border-radius: 12px;
-  display: inline-block;
+  display: block;
+  width:300px;
   font-size: 24px;
   margin: 4px 2px;
-  border-radius: 8px;
+  border-radius: 8px; 
   cursor: pointer;
 }
-
+.wrapper {
+  position: absolute;
+  top: 30%;
+  left: 40%;
+  }
 
 .button2 {background-color: #008CBA;} /* Blue */
 .button3 {background-color: #f44336;} /* Red */ 
@@ -30,14 +35,14 @@
 <!-- index.html -->
 <head>
   <script type="text/javascript" src="/static/jquery.min.js"></script>
-  
+  <h1>Live system</h1>
 </head>
   <body>
- 
-    
+   
+    <div class="wrapper" style="text-align: center;">  
 
-    <button id='myButton' type="button" class="button0">Start</button>
-    
+    <button onclick="myFunction()" id='myButton' type="button" class="button0">Start</button>
+   
     <script>
       $('#myButton').click(function() {
           $.ajax({
@@ -52,7 +57,7 @@
       });
     </script>
     
-    <button id='endButton' name="button_a" value="button_a" type="button" class="button0 button3" >End</button>
+    <button onclick='endFunction()' id='endButton' name="button_a" value="button_a" type="button" class="button0 button3" >End</button>
     
     <script>
     $('#endButton').click(function() {
@@ -68,11 +73,21 @@
       });
     </script>
 
+
+ <script>
+  function myFunction() {
+    document.getElementById("demo").innerHTML = "Camera on";
+  }
+  </script>  
   
-   
-<a href=highway ><button  class="button0 button2">Return to index page</button></a> 
-  
-  
+ <script>
+  function endFunction() {
+    document.getElementById("demo").innerHTML = "Camera off";
+  }
+  </script>  
+<a href=highway ><button  class="button0 button2" style='text-decoration:none!important;'>Return to index page</button></a> 
+<p id="demo"></p>
+</div>
   </body>
  
 

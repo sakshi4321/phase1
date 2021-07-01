@@ -20,7 +20,7 @@ import os.path
 
 encoder_model = 'facenet_keras.h5'
 class Camera(object):
-    CAPTURES_DIR = "static/captures/"
+    CAPTURES_DIR = "static/photo/"
     RESIZE_RATIO = 1.0
     detector=MTCNN()
     face_encoder = load_model(encoder_model)
@@ -28,17 +28,20 @@ class Camera(object):
 
     encoding_dict = dict()
 
-    def start_cam(self):############ Selection of camera is needed
-        self.video = cv.VideoCapture(0)
+    def start_cam(self,ip):############ Selection of camera is needed
+        self.video = cv.VideoCapture(ip)
     
     def stop_cam(self):
         self.video.release()
         
     def get_face(self,img, box):
-        [[x1, y1, width, height]] = box
-        x1, y1 ,x2,y2= int(x1), int(y1),int(width),int(height)
-        face = img[y1:y2, x1:x2]
-        return face, (x1, y1), (x2, y2)
+        try:
+            [[x1, y1, width, height]] = box
+            x1, y1 ,x2,y2= int(x1), int(y1),int(width),int(height)
+            face = img[y1:y2, x1:x2]
+            return face, (x1, y1), (x2, y2)
+        except ValueError:
+            return start_cam(0)
 
     
         face = img[y1:y2, x1:x2]

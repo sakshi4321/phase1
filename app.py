@@ -567,7 +567,10 @@ def gen(camera):
 @app.route('/video_feed/')
 def video_feed():
     camera = get_camera()
-    camera.start_cam()
+    ip=0
+    #t1 = threading.Thread(target=camera.start_cam, args=(ip,))
+    #t1.start()
+    camera.start_cam(ip)
     return Response(gen(camera),
         mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -600,7 +603,9 @@ def stamp_file(timestamp):
     roll_no=session.get("roll_no")
     first_name=session.get("first_name")
     last_name=session.get("last_name")
-    return 'photo/'+str(first_name)+'_'+str(last_name)+'/'+ timestamp +'.jpg'
+    roll_no=session.get("roll_no")
+    course=session.get("course")
+    return 'photo/'+course+'/'+roll_no+'.jpg'
 
 
 ##### Complete Details of students before inserting to the Database     
@@ -708,12 +713,12 @@ def new():
     
     program(flag,course_current)
     
-    return redirect(url_for('test'))
+    return redirect(url_for('attendance_records'))
 @app.route('/highway', methods=['POST','GET'])
 def highway():
     return redirect(url_for('index'))
 
-###################program to check if the guy was there for atleast 5 lecture
+###################program to convert data from sql to dict
 #def check_unknown_id():
 def to_dict(row):
     if row is None:
@@ -732,15 +737,22 @@ def excel():
     
     if request.method == "POST":
        # getting input with name = fname in HTML form
-       start = request.form.get("start")
+       start = request.form.get("startd")
        # getting input with name = lname in HTML form 
-       end = request.form.get("end") 
-       select = request.form.get('course')
-       number = request.form.get('lec_no')
+       end = request.form.get("endd") 
+       select = request.form.get('coursed')
+       number = request.form.get('lec_nod')
+       
+       #print(start)
+       #print(end)
        qry = arecord.query.filter(and_(arecord.date.between(start, end),arecord.name_a.like(select),arecord.lecture_no.like(number))).all()
+       print(qry)
+       if qry==[]:
+           return redirect(url_for("attendance_records")) 
+    
        data_list = [to_dict(item) for item in qry]
        df = pd.DataFrame(data_list)
-       #print(df)
+       print(df)
        #a=df.columns
        df.drop('name_a',inplace=True,axis=1)
        df.drop('primkey',inplace=True,axis=1)
@@ -820,7 +832,7 @@ def attendance_in_db(a,t,lec_no,course_current):
                 l=str(person_name).split('_')
                 print(l)
                 flag_a=0
-                marked =arecord(id_a=l[1],primkey=None,name_a=l[0],lecture_no=int(t.minute),attend=False) 
+                marked =arecord(id_a=l[1],primkey=None,name_a=l[0],lecture_no=lec_no,attend=False) 
                 db.session.add(marked)
                 #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name), date=date_p.strftime("%x")
                 db.session.commit()
@@ -1043,7 +1055,7 @@ def program(flag,course_current):
             
 
            
-            lec_no=38
+            lec_no=t.minute
             
             flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
             return foo()         
