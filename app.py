@@ -232,13 +232,15 @@ def login(): # define login page fucntion
         print(password)
     
         dbuser = Users.query.filter_by(id=user).first()
-        if dbuser==[]:
-           return redirect(url_for("login")) 
+        if dbuser is None:
+            flash('Invalid Login')
+            return redirect(url_for("login")) 
         #print(dbuser.)
-        if user==dbuser.id and password==dbuser.password: 
-            print("check")
-            login_user(dbuser)
-            return redirect(url_for('index'))
+        else:
+            if user==dbuser.id and password==dbuser.password: 
+                print("check")
+                login_user(dbuser)
+                return redirect(url_for('index'))
     
     return render_template('register.html')
     # if request.method=='POST': # if the request is a GET we return the login page
