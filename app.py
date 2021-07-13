@@ -232,6 +232,8 @@ def login(): # define login page fucntion
         print(password)
     
         dbuser = Users.query.filter_by(id=user).first()
+        if dbuser==[]:
+           return redirect(url_for("login")) 
         #print(dbuser.)
         if user==dbuser.id and password==dbuser.password: 
             print("check")
