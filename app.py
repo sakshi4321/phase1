@@ -8,8 +8,12 @@ from openpyxl.reader.excel import load_workbook
 from flask import Flask, render_template, request, \
     Response, send_file, redirect, url_for,flash, make_response 
 from camera import Camera
+
 from flask import send_file, send_from_directory, safe_join, abort,session
 from flask_sqlalchemy import SQLAlchemy
+from flask import Blueprint,flash
+from flask_login import login_user, logout_user, login_required, current_user,LoginManager, login_manager
+from flask_login import UserMixin
 import sqlalchemy as db
 import pandas as pd
 #from datetime import datetime
@@ -36,6 +40,8 @@ import numpy as np
 from sklearn.preprocessing import Normalizer
 from scipy.spatial.distance import cosine
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from xlutils.copy import copy
 from sqlalchemy import and_, or_, not_
 # results=db.session.query(Students,Course,Classes).\
@@ -44,10 +50,13 @@ from sqlalchemy import and_, or_, not_
 from xlrd import open_workbook
 #mysql://root:''@localhost/attendance
 app = Flask(__name__)
+#ap = Blueprint('main', __name__)
+login = LoginManager(app)
 app.config["SECRET_KEY"]="abc"
 app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///attendance.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 camera = None
+#login_manager = LoginManager(app)
 marked_courses=[]
 db=SQLAlchemy(app)
 # app.secret_key = "abc"
@@ -107,7 +116,10 @@ class Classes(db.Model):
     #     self.roll_no=roll_no
     #     self.lectures=lectures
 
-
+class timing(db.Model):
+    time_id=db.Column(db.Integer,primary_key=True)
+    time=db.Column(db.String(200))
+    #minutes=db.Column(db.Integer)
 class Lectures(db.Model):
     lecture_id=db.Column(db.Integer,primary_key=True)
     #Comment lecture_name and check how to show timings 
@@ -168,6 +180,12 @@ class arecord(db.Model):
     six=db.Column(db.Boolean(), default=False)
     seven=db.Column(db.Boolean(), default=False)
     eight=db.Column(db.Boolean(), default=False)"""
+class Users(UserMixin,db.Model):
+    id = db.Column(db.String(200), primary_key=True) # primary keys are required by SQLAlchemy
+   
+    
+    password = db.Column(db.String(100))
+    
 db.create_all()
 
 """def __init__(self,id_a,name_a,attend):
@@ -199,39 +217,83 @@ def get_camera():
         camera = Camera()
 
     return camera
+@login.user_loader
+def load_user(id):
+    return Users.query.get(id)
+@app.route('/', methods=['GET', 'POST']) # define login page path
+def login(): # define login page fucntion
+    
+    if request.method=='POST': 
+        # if the request is POST the we check if the user exist and with te right password
+        user = request.form.get("uname")
+    
+        password = request.form["psw"]
+        print(user)
+        print(password)
+    
+        dbuser = Users.query.filter_by(id=user).first()
+        #print(dbuser.)
+        if user==dbuser.id and password==dbuser.password: 
+            print("check")
+            login_user(dbuser)
+            return redirect(url_for('index'))
+    
+    return render_template('register.html')
+    # if request.method=='POST': # if the request is a GET we return the login page
+    #     # if the request is POST the we check if the user exist and with te right password
+    #     user = request.form.get("uname")
+    
+    #     password = request.form["psw"]
+    #     if user=="admin" and password=="admin@123":
+    #         login_user(user, remember=remember)
+    #         return redirect(url_for("index"))
+    #     else :
+    #         flash('Please check your login details and try again.')
+    #         return redirect(url_for('login')) # if the user doesn't exist or password is wrong, reload the page
+    #     # if the above check passes, then we know the user has the right credentials
+        
+    #     return redirect(url_for('login'))
 
+@app.route('/logout') # define logout path
+@login_required
+def logout(): #define the logout function
+    logout_user()
+    return redirect(url_for('login'))
 
 """
 @app.route('/')
 def root():
     return redirect(url_for('index'))
 """
-@app.route('/', methods =["GET", "POST"])
-def image():
-   if request.method == "POST":
-       first_name = request.form.get("fname")
+# @app.route('/', methods =["GET", "POST"])
+# def image():
+#     return render_template('register.html')
+
+#    if request.method == "POST":
+#        user = request.form.get("uname")
     
-       last_name = request.form["lname"]
-       print(last_name)
-    #    session["a"]=first_name
-    #    session["c"]=last_name
+#        password = request.form["psw"]
+#        if user=="admin" and password=="admin@123":
+#             return redirect(url_for("index"))
+#    session["a"]=first_name
+#    session["c"]=last_name
+
+
+#os.mkdir(str(first_name)+"_"+str(last_name))
+#os.chdir(str(first_name)+"_"+str(last_name))
+#return "Your name is "+first_name + last_name
+"""with open('nameList.csv','w') as inFile:
+
+writer = csv.DictWriter(inFile, fieldnames=fieldnames)
+
+
+writer.writerow({'name': name, 'comment': comment})"""
 
        
-       #os.mkdir(str(first_name)+"_"+str(last_name))
-       #os.chdir(str(first_name)+"_"+str(last_name))
-       #return "Your name is "+first_name + last_name
-       """with open('nameList.csv','w') as inFile:
-            
-            writer = csv.DictWriter(inFile, fieldnames=fieldnames)
-
-            
-            writer.writerow({'name': name, 'comment': comment})"""
-
-       return render_template('index.html',first_name=first_name,last_name=last_name)
-   return render_template('register.html')
-
+    
 ######## Student Registration page
 @app.route('/index/', methods =["GET", "POST"])
+@login_required
 def index():
     # students=Students.query.all()
     # classrooms=Classes.query.all()
@@ -244,17 +306,20 @@ def index():
 
 ######### Courses Registration Page
 @app.route('/courses/', methods =["GET", "POST"])
+@login_required
 def course_reg():
     courses=Course.query.all()
     return render_template('courses.html',courses=courses)
 
 @app.route('/lectures/', methods =["GET", "POST"])
+@login_required
 def lecture_reg():
     lectures=Lectures.query.all()
     return render_template('lectures.html',lectures=lectures)
 
 ######### Class Registration page
 @app.route('/classes/', methods =["GET", "POST"])
+@login_required
 def class_reg():
     classes=db.session.query(Classes,Course).join(Course).all()
     courses=Course.query.all()
@@ -262,11 +327,19 @@ def class_reg():
 
 ########## Attendance Page
 @app.route('/attendance', methods=['POST', 'GET'])
+@login_required
 def attendance_records():
     attendance = arecord.query.all()
     attendance2 = arecord.query.with_entities(arecord.name_a).distinct()
     attendance1 = arecord.query.with_entities(arecord.lecture_no).distinct()
     return render_template('attend_page.html',record=attendance,nRecord=attendance2,nRecord1=attendance1)
+
+@app.route('/timings', methods=['POST', 'GET'])
+def lecture_timings():
+    time = timing.query.all()
+    
+    return render_template('lecture_timing.html',record=time)
+
 
 
 ######## Insert Student in the database
@@ -319,7 +392,25 @@ def insert_course():
         db.session.commit()
         flash("Course Added Successfully!!")
         return redirect(url_for('course_reg'))
+##########insert lecture timing
+@app.route('/timing_insert',methods=["POST","GET"])
+def insert_time():
+    if request.method=="POST":
+        h=request.form["hours"]
+        
 
+        stud_course=timing.query.all()
+
+        for x in stud_course:
+            if h==x.time :
+                flash(1)
+                return redirect(url_for("lecture_timings"))
+
+        courses=timing(time=h)
+        db.session.add(courses)
+        db.session.commit()
+        flash("Lecture Timing Added Successfully!!")
+        return redirect(url_for('lecture_timings'))
 ###### Insert class in the database
 @app.route('/class_insert',methods=["POST","GET"])
 def insert_class():
@@ -354,6 +445,16 @@ def update_courses():
         flash("Course updated Sucessfully!!!")
         return redirect(url_for('course_reg'))
 
+##############Update lec times
+@app.route('/update_timing',methods=["GET","POST"])
+def update_timings():
+    if request.method=="POST":
+        update_query_course=timing.query.get(request.form.get('id'))
+        update_query_course.hours=request.form["hours"]
+        update_query_course.minutes=request.form["minutes"]
+        db.session.commit()
+        flash("Timing updated Sucessfully!!!")
+        return redirect(url_for('lecture_timings'))
 
 ###### Update class in the database
 @app.route('/update_classes',methods=["GET","POST"])
@@ -479,6 +580,14 @@ def delete_class(id):
     db.session.commit()
     flash("Class Deleted Sucessfully!!")
     return redirect(url_for('class_reg'))
+
+@app.route('/delete_timings/<id>')
+def delete_timings(id):
+    delete_tim=timing.query.get(id)
+    db.session.delete(delete_tim)
+    db.session.commit()
+    flash("Timing Deleted Sucessfully!!")
+    return redirect(url_for('lecture_timings'))
 
 ##### Delete course in the database
 @app.route('/delete_course/<id>')
@@ -709,9 +818,10 @@ def foo():
 
 @app.route('/new', methods=['POST'])
 def new():
-    flag=True
+    video.release()
+    # flag=True
     
-    program(flag,course_current)
+    # program(flag,course_current)
     
     return redirect(url_for('attendance_records'))
 @app.route('/highway', methods=['POST','GET'])
@@ -967,6 +1077,7 @@ def program(flag,course_current):
     encoded=send_encodings(directory)
     present_candidates=[]
     flag_a=0
+    
     while True:
         check,frame=video.read()
         total_people=0
@@ -1049,16 +1160,33 @@ def program(flag,course_current):
         if t.minute==30:
             marked_courses=[]
             #i=0
-        if  t.second==2 or t.second==18:
-            flag_a=1           
-        if  4<t.second<20 and flag_a==1 : 
+        # if  t.second==2 or t.second==18:
+        #     flag_a=1           
+        # if  4<t.second<20 and flag_a==1 : 
             
 
            
-            lec_no=t.minute
+        #     lec_no=t.minute
             
-            flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
-            return foo()         
+        #     flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+        #     return foo() 
+        # if timing.query.order_by(timing.time_id).all() is not None:
+        #     for sch in timing.query.order_by(timing.time_id).all():
+        #         a=sch.time.split(":")
+        #         print(t.minute)
+        #         print(a[1])
+        #         if t.hour==int(a[0]) and t.minute==int(a[1]) and t.second==1:
+        #             flag_a=1           
+        #         if t.hour==int(a[0]) and t.minute==int(a[1]) and 30<t.second<59 : 
+           
+        #             lec_no=int(sch.time_id)
+            
+        #             flag_a=attendance_in_db(present_candidates,t,lec_no,course_current) 
+        #             return foo()
+
+
+                
+
         #############8:15-9 am 
         if t.hour==8 and t.minute==20 and t.second==22:
             flag_a=1           
