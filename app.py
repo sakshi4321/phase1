@@ -77,6 +77,7 @@ class Students(db.Model):
     attendance_id=db.relationship('Attendance_sys',backref='stud_attend')
     # room_id=db.Column(db.Integer,db.ForeignKey('classes.class_id'))
     course_sel=db.Column(db.Integer,db.ForeignKey('course.course_id'))
+    id=db.relationship('arecord',backref='id',cascade = "all,delete, delete-orphan")
 
     
 
@@ -89,10 +90,10 @@ class Students(db.Model):
     #     self.room_id=room_id
 
 
-class Timetable(db.Model):
-    time_id=db.Column(db.Integer,primary_key=True)
-    start_time=db.Column(db.String(200),nullable=False)
-    end_time=db.Column(db.String(200),nullable=False)
+# class Timetable(db.Model):
+#     time_id=db.Column(db.Integer,primary_key=True)
+#     start_time=db.Column(db.String(200),nullable=False)
+#     end_time=db.Column(db.String(200),nullable=False)
 
 class Course(db.Model):
     course_id=db.Column(db.Integer,primary_key=True)
@@ -116,9 +117,9 @@ class Classes(db.Model):
     #     self.roll_no=roll_no
     #     self.lectures=lectures
 
-class timing(db.Model):
-    time_id=db.Column(db.Integer,primary_key=True)
-    time=db.Column(db.String(200))
+# class timing(db.Model):
+#     time_id=db.Column(db.Integer,primary_key=True)
+#     time=db.Column(db.String(200))
     #minutes=db.Column(db.Integer)
 class Lectures(db.Model):
     lecture_id=db.Column(db.Integer,primary_key=True)
@@ -140,19 +141,19 @@ class Lectures(db.Model):
 
 
 
-class Attendance_sys(db.Model):
-    attendance_id=db.Column(db.Integer,primary_key=True)
-    roll_no=db.Column(db.Integer,db.ForeignKey('students.roll_no'))
-    lecture_id=db.Column(db.Integer,db.ForeignKey('lectures.lecture_id'))
-    class_id=db.Column(db.Integer,db.ForeignKey('classes.class_id'))
-    present_absent=db.Column(db.Boolean, default=False, nullable=False)
-####my
-class Attendance(db.Model):
-    course_id=db.Column(db.Integer,primary_key=True)
-    roll_no=db.Column(db.Integer,nullable=False)
-    lecture_id=db.Column(db.Integer,nullable=False)
-    class_id=db.Column(db.Integer,nullable=False)
-    present_absent=db.Column(db.Boolean, default=False, nullable=False)
+# class Attendance_sys(db.Model):
+#     attendance_id=db.Column(db.Integer,primary_key=True)
+#     roll_no=db.Column(db.Integer,db.ForeignKey('students.roll_no'))
+#     lecture_id=db.Column(db.Integer,db.ForeignKey('lectures.lecture_id'))
+#     class_id=db.Column(db.Integer,db.ForeignKey('classes.class_id'))
+#     present_absent=db.Column(db.Boolean, default=False, nullable=False)
+# ####my
+# class Attendance(db.Model):
+#     course_id=db.Column(db.Integer,primary_key=True)
+#     roll_no=db.Column(db.Integer,nullable=False)
+#     lecture_id=db.Column(db.Integer,nullable=False)
+#     class_id=db.Column(db.Integer,nullable=False)
+#     present_absent=db.Column(db.Boolean, default=False, nullable=False)
 
 
     # def __init__(self,attendance_id,lecture_id,class_id,present_absent):
@@ -166,13 +167,14 @@ connection = engine.connect()
 metadata = db.MetaData()"""
 #course='ic'
 class arecord(db.Model):
-    id_a=db.Column(db.String(225))
+    id_a=db.Column(db.String(225),db.ForeignKey('students.roll_no'))
     primkey=db.Column(db.Integer(),autoincrement=True, primary_key=True)
     name_a=db.Column(db.String(255), nullable=False)
     date=db.Column(db.Date, nullable=False, default=date.today())
     lecture_no=db.Column(db.Integer(), nullable=False)         
               
     attend=db.Column(db.Boolean(), default=False)
+    
     """two=db.Column(db.Boolean(), default=False)
     three=db.Column(db.Boolean(), default=False)
     four=db.Column(db.Boolean(), default=False)
@@ -228,19 +230,24 @@ def login(): # define login page fucntion
         user = request.form.get("uname")
     
         password = request.form["psw"]
-        print(user)
-        print(password)
+        # print(user)
+        # print(password)
     
         dbuser = Users.query.filter_by(id=user).first()
         if dbuser is None:
             flash('Invalid Login')
             return redirect(url_for("login")) 
         #print(dbuser.)
+        #if user==dbuser.id and password==dbuser.password: 
         else:
             if user==dbuser.id and password==dbuser.password: 
-                print("check")
+                #print("check")
                 login_user(dbuser)
                 return redirect(url_for('index'))
+            else:
+                flash('Invalid Login')
+                return redirect(url_for("login"))
+
     
     return render_template('register.html')
     # if request.method=='POST': # if the request is a GET we return the login page
@@ -488,7 +495,7 @@ def update():
         update_query.phone=request.form['phone']
         temp=request.form["course"]
         # temp=request.form["class_name"]
-        print(temp)
+        #print(temp)
         temp1=Course.query.filter_by(course_name=temp).first()
         update_query.course_sel=temp1.course_id
 
@@ -501,12 +508,12 @@ def update():
 def update_attendance():
     if request.method=="POST":
         update_query=arecord.query.get(request.form.get('id'))
-        print(update_query)
+        #print(update_query)
         #update_query.attend=request.form['value_attend']
         temp=request.form['value_attend']
         if temp=="True":
             update_query.attend=True
-            print("0")
+            #print("0")
         else:
             update_query.attend=False
         #print(bool(request.form['value_attend']))
@@ -680,7 +687,7 @@ def gen(camera):
 @app.route('/video_feed/')
 def video_feed():
     camera = get_camera()
-    ip=0
+    ip='rtsp://admin:admin@123@192.168.1.240:554/cam/realmonitor?channel=4&subtype=0'
     #t1 = threading.Thread(target=camera.start_cam, args=(ip,))
     #t1.start()
     camera.start_cam(ip)
@@ -790,7 +797,7 @@ def foo():
             if class_ip.camera_name not in marked_courses:
                
                 marked_courses.append(class_ip.camera_name)
-                print(marked_courses)
+                #print(marked_courses)
 
                 class_index.append(class_ip.camera_name)
                 if class_ip.camera_name=='0':
@@ -804,7 +811,7 @@ def foo():
                 
                     s=p.course_name
                     course_name.append(s)
-                    print(course_name)
+                    #print(course_name)
                 #t1 = threading.Thread(target=program, args=(flag,s))
                 #t1.start()
                 
@@ -860,13 +867,13 @@ def excel():
        #print(start)
        #print(end)
        qry = arecord.query.filter(and_(arecord.date.between(start, end),arecord.name_a.like(select),arecord.lecture_no.like(number))).all()
-       print(qry)
+       #print(qry)
        if qry==[]:
            return redirect(url_for("attendance_records")) 
     
        data_list = [to_dict(item) for item in qry]
        df = pd.DataFrame(data_list)
-       print(df)
+       #print(df)
        #a=df.columns
        df.drop('name_a',inplace=True,axis=1)
        df.drop('primkey',inplace=True,axis=1)
@@ -876,7 +883,7 @@ def excel():
        df1 = df.set_index(['id_a', s]).unstack().sort_index(level=1, axis=1)
        df1.columns = [f'{x}{y}' for x, y in df1.columns]
        df1 = df1.reset_index()
-       print (df1)
+       #print (df1)
        #print(df.date.unique())
        #print(df)
        resp = make_response(df1.to_csv())
@@ -933,18 +940,18 @@ l2_normalizer = Normalizer('l2')
 
 def attendance_in_db(a,t,lec_no,course_current):
     encoded=send_encodings(directory)
-    print("marking attendance")
-    print(a)
+    # print("marking attendance")
+    # print(a)
     #date_p=datetime.datetime.now()
     flag_a=1
-    print(course_current)
+    #print(course_current)
     if len(a)==0:
         for person_name in encoded:
             f=str(person_name).split('_')
             if str(person_name) not in a and f[0]==str(course_current):
-                print("no one is there")
+                #print("no one is there")
                 l=str(person_name).split('_')
-                print(l)
+                #print(l)
                 flag_a=0
                 marked =arecord(id_a=l[1],primkey=None,name_a=l[0],lecture_no=lec_no,attend=False) 
                 db.session.add(marked)
@@ -956,7 +963,7 @@ def attendance_in_db(a,t,lec_no,course_current):
 
         
     if len(a)>0:
-        print("test")
+        #print("test")
         for person_name in encoded:
             #print(person_name)
             #print(a)
@@ -966,7 +973,7 @@ def attendance_in_db(a,t,lec_no,course_current):
                 #cou=spl[0]
                 #print(spl[0])
             f=str(person_name).split('_')
-            print("course going on is "+ course_current)
+            #print("course going on is "+ course_current)
             if str(person_name) in a and f[0]==str(course_current):
                 flag_a=0
                 
@@ -976,13 +983,13 @@ def attendance_in_db(a,t,lec_no,course_current):
                 #classes=Classes(classname=class_name,camera_name=camera_name,course_class=course_name)
                 db.session.add(marked)
                 db.session.commit()
-                print("attendance marked true!")
+                #print("attendance marked true!")
                 #ResultProxy = db.session.execute(query)
                 #query = db.insert(emp) 
             if str(person_name) not in a and f[0]==str(course_current):
-                print("else vala test")
+                #print("else vala test")
                 l=str(person_name).split('_')
-                print(l)
+                #print(l)
                 flag_a=0
                 marked =arecord(id_a=f[1],primkey=None, name_a=f[0],lecture_no=lec_no,attend=False) 
                 db.session.add(marked)
@@ -1013,7 +1020,7 @@ def mark_attendance_of_a_lec(a,t,lec_no):
     col = 0
     if len(a)>0:
         for person_name in encoded:
-            print(person_name)
+            #print(person_name)
             #print(a)
 
             for x in range(0,len(a)):
@@ -1022,7 +1029,7 @@ def mark_attendance_of_a_lec(a,t,lec_no):
                 if person_name in a:
                 
                     l=str(a[x]).split('_')
-                    print(l)
+                    #print(l)
                     sheet.write(row, col,     str(l[0]))
     
                     sheet.write(row, col+1,     str(l[1]))
@@ -1084,11 +1091,12 @@ def program(flag,course_current):
     
     while True:
         check,frame=video.read()
+        #frame=cv2.resize(frame,(224,224))
         total_people=0
         t=datetime.now()
         #frame=sr.upsample(frame)
         #total_frames = total_frames + 1
-        print(t.second)
+        #print(t.second)
 
         faces,_=detector.detect(frame)
         classIds, confs, bbox = net.detect(frame,confThreshold=thres)
@@ -1108,6 +1116,7 @@ def program(flag,course_current):
     
         #print(faces)
         if faces is not None:
+            #print("face detected")
             for person in faces:
                 bounding_box=person
                 face, pt_1, pt_2 = get_face(frame, [bounding_box])
@@ -1164,6 +1173,7 @@ def program(flag,course_current):
         if t.minute==30:
             marked_courses=[]
             #i=0
+        ######## code to test asap
         # if  t.second==2 or t.second==18:
         #     flag_a=1           
         # if  4<t.second<20 and flag_a==1 : 

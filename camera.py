@@ -29,7 +29,7 @@ class Camera(object):
     encoding_dict = dict()
 
     def start_cam(self,ip):############ Selection of camera is needed
-        self.video = cv.VideoCapture(ip)
+        self.video = cv.VideoCapture(0)
     
     def stop_cam(self):
         self.video.release()
@@ -54,6 +54,7 @@ class Camera(object):
         boxes,probs = Camera.detector.detect(frame)
         
         encodes=[]
+        encode=[]
 
 	       
         if boxes is not None:
